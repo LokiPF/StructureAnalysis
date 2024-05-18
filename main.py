@@ -3,7 +3,7 @@ import configparser
 import numpy as np
 
 from Logger import Logger
-from __structs__ import LoadCase, Parameters, Panel, LoadsInPlane, LoadsStringers, Stringer, IO
+from __structs__ import LoadCase, Parameters, Panel, LoadsInPlane, LoadsStringers, Stringer, IO, Geometric
 from io_handler import read_config, parse_excel
 
 logger = Logger('main').logger
@@ -21,7 +21,7 @@ logger = Logger('main').logger
 
 
 def calc_buckling_factors(params: Parameters, sigma_y: float, sigma_x: float) -> [float,
-                                                                                                                 float]:
+                                                                                  float]:
     """Function to minimize the stress and calculate the number of halve waves in x- and y-direction"""
     alpha = params.a / params.b
     beta = sigma_y / sigma_x
@@ -30,7 +30,7 @@ def calc_buckling_factors(params: Parameters, sigma_y: float, sigma_x: float) ->
     for m in range(1, 10):
         for n in range(1, 10):
             k_sigma = np.square(np.square(m) + np.square(n * alpha)) / (
-                        np.square(alpha) * (np.square(m) + beta * np.square(n * alpha)))
+                    np.square(alpha) * (np.square(m) + beta * np.square(n * alpha)))
             sigma_crit = k_sigma * params.sigma_e
             if np.abs(sigma_crit) < np.abs(min_sigma) or min_sigma == -1:
                 min_sigma = sigma_crit
@@ -74,7 +74,7 @@ def avg_stringer(stringer: LoadsStringers):
     return numerator / len(stringer)
 
 
-def calc_avg_sigma_combined(load_cases: [LoadCase], E):
+def calc_avg_sigma_combined(load_cases: [LoadCase], params: Parameters):
     for load_case in load_cases:
         for i in range(4):
             stringer = load_case.LoadsStringers[i * 3:i * 3 + 3]
@@ -82,15 +82,59 @@ def calc_avg_sigma_combined(load_cases: [LoadCase], E):
             avg_stringer_xx = avg_stringer(stringer) * 3 * 56800
             avg_sigma_panel = avg_panel(panel)[0] * 6 * 160000
             sigma_combined = (avg_stringer_xx + avg_sigma_panel) / (56800 * 3 + 160000 * 6)
-            sigma_crip = sigma_combined - 1 / E * np.square(sigma_combined / (2 * np.pi)) * np.square(115.4074149)
+            # sigma_crip = params.sigma_yield - 1 / params.E * np.square(params.sigma_yield / (2 * np.pi)) * np.square(
+            #     115.4074149)
+            # b_1_1 = params.stringer_base_w / 2 - (params.stringer_neck_width / 2) * (
+            #             0.25 * params.stringer_neck_width / params.stringer_base_t)
+            b_1_2 = params.stringer_height - params.stringer_base_t / 2 * (
+                        2 - 0.5 * params.stringer_neck_width / params.stringer_base_t)
+            # x_1 = b_1_1 / params.stringer_base_t * np.sqrt(params.sigma_yield / (0.41 * params.E))
+            x_2 = b_1_2 / params.stringer_neck_width * np.sqrt(params.sigma_yield / (0.41 * params.E))
+            if x_2 <= 1.095:
+                alpha_2 = 1.4 - 0.628 * x_2
+            elif x_2 <= 1.633:
+                alpha_2 = 0.78 / x_2
+            else:
+                alpha_2 = 0.69 / np.power(x_2, 0.75)
+            sigma_crip = alpha_2 * params.sigma_yield
+            if params.sigma_yield < sigma_crip:
+                R_f = params.sigma_yield / sigma_combined
+            else:
+                R_f = sigma_crip / sigma_combined
             load_case.Stringers.append(
-                Stringer(sigma_axial=sigma_combined, sigma_crip=sigma_crip, reserve_factor=sigma_crip / sigma_combined))
+                Stringer(sigma_axial=sigma_combined, sigma_crip=sigma_crip, reserve_factor=np.abs(R_f)))
+
+
+def calc_lamda(params: Parameters, load_cases: [LoadCase]):
+    A_skin = params.t * params.b
+    A_stringer_base = params.stringer_base_w * params.stringer_base_t
+    A_stringer_neck = (params.stringer_height - params.stringer_base_t) * params.stringer_neck_width
+    A = A_skin + A_stringer_base + A_stringer_neck
+    z_bar_numerator = -params.t / 2 * A_skin + params.stringer_base_t / 2 * A_stringer_base + (
+            params.stringer_base_t + (params.stringer_height - params.stringer_base_t) / 2) * A_stringer_neck
+    z_bar = z_bar_numerator / A
+    I_skin = np.power(params.t, 3) * params.b / 12 + A_skin * np.square(-params.t / 2 - z_bar)
+    I_stringer_base = np.power(params.stringer_base_t, 3) * params.stringer_height / 12 + A_stringer_base * np.square(
+        params.t / 2 - z_bar)
+    I_stringer_neck = np.power(params.stringer_height - params.stringer_base_t,
+                               3) * params.stringer_neck_width / 12 + A_stringer_neck * np.square(
+        params.stringer_base_t + (params.stringer_height - params.stringer_base_t) / 2 - z_bar)
+    I = I_skin + I_stringer_base + I_stringer_neck
+    r_gyr = np.sqrt(I / A)
+    lamda = params.a / r_gyr
+    for load_case in load_cases:
+        for stringer in load_case.Stringers:
+            if np.abs(stringer.sigma_crip) < np.abs(params.sigma_yield):
+                lamda_crit = np.sqrt(2 * np.square(np.pi) * params.E / np.abs(stringer.sigma_crip))
+            else:
+                lamda_crit = np.sqrt(2 * np.square(np.pi) * params.E / params.sigma_yield)
+            stringer.geometrics.append(Geometric(I=I, r_gyr=r_gyr, lamda=lamda, lamda_crit=lamda_crit))
 
 
 if __name__ == '__main__':
     load_cases, io, parameters = read_config()
-    # parameters = get_parameters()
     calc_avg_sigma_panel(load_cases, parameters)
-    calc_avg_sigma_combined(load_cases, 64744.31)
+    calc_avg_sigma_combined(load_cases, parameters)
+    calc_lamda(parameters, load_cases)
     parse_excel(io, load_cases)
     pass

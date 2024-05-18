@@ -31,6 +31,7 @@ class Stringer(NamedTuple):
     sigma_axial: float
     sigma_crip: float
     reserve_factor: float = 0
+    geometrics: [] = []
 
 
 class LoadCase(NamedTuple):
@@ -47,9 +48,21 @@ class Parameters(NamedTuple):
     a: float
     b: float
     t: float
+    stringer_base_w: float
+    stringer_base_t: float
+    stringer_height: float
+    stringer_neck_width: float
     E: float
     sigma_e: float
     sf: float = 1.5
+
+
+class Geometric(NamedTuple):
+    I: float
+    r_gyr: float
+    lamda: float
+    lamda_crit: float
+
 
 class IO(NamedTuple):
     output_file: str = ''

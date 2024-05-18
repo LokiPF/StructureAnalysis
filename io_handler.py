@@ -5,7 +5,7 @@ import openpyxl
 import pandas as pd
 
 from Logger import Logger
-from __structs__ import LoadCase, LoadsInPlane, LoadsStringers, IO, Parameters
+from __structs__ import LoadCase, LoadsInPlane, LoadsStringers, IO, Parameters, Stringer
 
 logger = Logger('read_excel').logger
 
@@ -25,9 +25,17 @@ def read_config() -> [LoadCase]:
     a = float(config['PARAMETERS']['a'])
     b = float(config['PARAMETERS']['b'])
     t = float(config['PARAMETERS']['t'])
+    stringer_base_w = float(config['PARAMETERS']['stringer_base_w'])
+    stringer_base_t = float(config['PARAMETERS']['stringer_base_t'])
+    stringer_height = float(config['PARAMETERS']['stringer_height'])
+    stringer_neck_width = float(config['PARAMETERS']['stringer_neck_width'])
     main = pd.read_excel(io.output_file, sheet_name='in')
     E = float(main.iat[5, 1])
-    parameters = Parameters(sigma_ul=sigma_ul, sigma_yield=sigma_yield, mu=mu, a=a, b=b, t=t, E=E, sf=sf, sigma_e=E * np.square(np.pi) / (12 * (1 - np.square(mu))) * np.square(t / b))
+    parameters = Parameters(sigma_ul=sigma_ul, sigma_yield=sigma_yield, mu=mu, a=a, b=b, t=t,
+                            stringer_base_w=stringer_base_w, stringer_height=stringer_height,
+                            stringer_base_t=stringer_base_t, stringer_neck_width=stringer_neck_width,
+                            E=E, sf=sf,
+                            sigma_e=E * np.square(np.pi) / (12 * (1 - np.square(mu))) * np.square(t / b))
     return read_excel(in_plane_stresses, axial_stringer_stresses, params=parameters), io, parameters
 
 
@@ -42,7 +50,8 @@ def read_excel(in_plane_stresses: str, axial_stringer_stresses: str, params: Par
     for i, load_case in enumerate(load_cases):
         while ips.iat[k, 2] == i + 1:
             load_case.LoadsInPlane.append(
-                LoadsInPlane(e_id=ips.iat[k, 0], xx=params.sf * ips.iat[k, 5], yy=params.sf * ips.iat[k, 7], xy=params.sf * ips.iat[k, 6],
+                LoadsInPlane(e_id=ips.iat[k, 0], xx=params.sf * ips.iat[k, 5], yy=params.sf * ips.iat[k, 7],
+                             xy=params.sf * ips.iat[k, 6],
                              von_Mises=params.sf * ips.iat[k, 8],
                              reserve_factor=np.abs(params.sigma_ul / (params.sf * float(ips.iat[k, 8])))))
             k += 1
@@ -50,7 +59,8 @@ def read_excel(in_plane_stresses: str, axial_stringer_stresses: str, params: Par
                 break
         while ass.iat[j, 2] == i + 1:
             load_case.LoadsStringers.append(LoadsStringers(e_id=ass.iat[j, 0], stress=params.sf * ass.iat[j, 4],
-                                                           reserve_factor=np.abs(params.sigma_ul / (params.sf * ass.iat[j, 4]))))
+                                                           reserve_factor=np.abs(
+                                                               params.sigma_ul / (params.sf * ass.iat[j, 4]))))
             j += 1
             if j > len(ass) - 1:
                 break
@@ -106,6 +116,7 @@ def parse_stringer_analysis(ws, load_cases):
     column = 2
     for i, load_case in enumerate(load_cases):
         row = 73
+        row_geo = 80
         for k, stringer in enumerate(load_case.Stringers):
             cellref = ws.cell(row=row + k, column=column)
             cellref.value = stringer.sigma_axial
@@ -113,4 +124,18 @@ def parse_stringer_analysis(ws, load_cases):
             cellref.value = stringer.sigma_crip
             cellref = ws.cell(row=row + k, column=column + 2)
             cellref.value = stringer.reserve_factor
+            parse_geometric_properties(ws, stringer, row_geo + k)
         column += 5
+
+
+def parse_geometric_properties(ws, stringer: Stringer, row):
+    column = 2
+    for k, geo in enumerate(stringer.geometrics):
+        cellref = ws.cell(row=row, column=column)
+        cellref.value = geo.I
+        cellref = ws.cell(row=row, column=column + 1)
+        cellref.value = geo.r_gyr
+        cellref = ws.cell(row=row, column=column + 2)
+        cellref.value = geo.lamda
+        cellref = ws.cell(row=row, column=column + 3)
+        cellref.value = geo.lamda_crit
