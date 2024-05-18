@@ -1,5 +1,7 @@
 from typing import NamedTuple
 
+import numpy as np
+
 
 class LoadsInPlane(NamedTuple):
     e_id: int
@@ -41,8 +43,13 @@ class LoadCase(NamedTuple):
 class Parameters(NamedTuple):
     sigma_ul: float
     sigma_yield: float
-    nu: float
+    mu: float
+    a: float
+    b: float
+    t: float
+    E: float
     sigma_e: float
+    sf: float = 1.5
 
 class IO(NamedTuple):
     output_file: str = ''
