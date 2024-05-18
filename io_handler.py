@@ -1,4 +1,6 @@
 import configparser
+import csv
+import re
 
 import numpy as np
 import openpyxl
@@ -39,28 +41,45 @@ def read_config() -> [LoadCase]:
     return read_excel(in_plane_stresses, axial_stringer_stresses, params=parameters), io, parameters
 
 
+def fill_csv_with_commas(input_file):
+    with open(input_file, 'r') as infile:
+        reader = csv.reader(infile)
+        rows = list(reader)
+    max_delimiters = max(len(row) - 1 for row in rows)
+    for row in rows:
+        num_commas_needed = max_delimiters - (len(row) - 1)
+        row.extend([''] * num_commas_needed)
+    with open(input_file, 'w', newline='') as outfile:
+        writer = csv.writer(outfile)
+        writer.writerows(rows)
+
+
 def read_excel(in_plane_stresses: str, axial_stringer_stresses: str, params: Parameters) -> [LoadCase]:
+    fill_csv_with_commas(in_plane_stresses)
+    fill_csv_with_commas(axial_stringer_stresses)
     logger.info('Reading excel file')
-    ips = pd.read_excel(in_plane_stresses)
-    ass = pd.read_excel(axial_stringer_stresses)
+    ips = pd.read_csv(in_plane_stresses)
+    ass = pd.read_csv(axial_stringer_stresses)
     load_cases = [LoadCase([], [], [], []) for _ in range(3)]
 
     k = 10
     j = 10
     for i, load_case in enumerate(load_cases):
-        while ips.iat[k, 2] == i + 1:
+        while int(ips.iat[k, 2]) == i + 1:
             load_case.LoadsInPlane.append(
-                LoadsInPlane(e_id=ips.iat[k, 0], xx=params.sf * ips.iat[k, 5], yy=params.sf * ips.iat[k, 7],
-                             xy=params.sf * ips.iat[k, 6],
-                             von_Mises=params.sf * ips.iat[k, 8],
+                LoadsInPlane(e_id=int(ips.iat[k, 0]), xx=params.sf * float(ips.iat[k, 5]),
+                             yy=params.sf * float(ips.iat[k, 7]),
+                             xy=params.sf * float(ips.iat[k, 6]),
+                             von_Mises=params.sf * float(ips.iat[k, 8]),
                              reserve_factor=np.abs(params.sigma_ul / (params.sf * float(ips.iat[k, 8])))))
             k += 1
             if k > len(ips) - 1:
                 break
-        while ass.iat[j, 2] == i + 1:
-            load_case.LoadsStringers.append(LoadsStringers(e_id=ass.iat[j, 0], stress=params.sf * ass.iat[j, 4],
-                                                           reserve_factor=np.abs(
-                                                               params.sigma_ul / (params.sf * ass.iat[j, 4]))))
+        while int(ass.iat[j, 2]) == i + 1:
+            load_case.LoadsStringers.append(
+                LoadsStringers(e_id=int(ass.iat[j, 0]), stress=params.sf * float(ass.iat[j, 4]),
+                               reserve_factor=np.abs(
+                                   params.sigma_ul / (params.sf * float(ass.iat[j, 4])))))
             j += 1
             if j > len(ass) - 1:
                 break
