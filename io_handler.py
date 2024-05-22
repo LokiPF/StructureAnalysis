@@ -67,17 +67,17 @@ def read_excel(in_plane_stresses: str, axial_stringer_stresses: str, params: Par
     for i, load_case in enumerate(load_cases):
         while int(ips.iat[k, 2]) == i + 1:
             load_case.LoadsInPlane.append(
-                LoadsInPlane(e_id=int(ips.iat[k, 0]), xx=params.sf * float(ips.iat[k, 5]),
-                             yy=params.sf * float(ips.iat[k, 7]),
-                             xy=params.sf * float(ips.iat[k, 6]),
-                             von_Mises=params.sf * float(ips.iat[k, 8]),
+                LoadsInPlane(e_id=int(ips.iat[k, 0]), xx=float(ips.iat[k, 5]),
+                             yy=float(ips.iat[k, 7]),
+                             xy=float(ips.iat[k, 6]),
+                             von_Mises=float(ips.iat[k, 8]),
                              reserve_factor=np.abs(params.sigma_ul / (params.sf * float(ips.iat[k, 8])))))
             k += 1
             if k > len(ips) - 1:
                 break
         while int(ass.iat[j, 2]) == i + 1:
             load_case.LoadsStringers.append(
-                LoadsStringers(e_id=int(ass.iat[j, 0]), stress=params.sf * float(ass.iat[j, 4]),
+                LoadsStringers(e_id=int(ass.iat[j, 0]), stress=float(ass.iat[j, 4]),
                                reserve_factor=np.abs(
                                    params.sigma_ul / (params.sf * float(ass.iat[j, 4])))))
             j += 1

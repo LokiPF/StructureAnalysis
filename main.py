@@ -50,8 +50,8 @@ def calc_avg_sigma_panel(load_cases: [LoadCase], params: Parameters) -> Panel:
             panel = load_case.LoadsInPlane[i * 6:i * 6 + 6]
             avg_sigma = avg_panel(panel)
             buckling_f = calc_buckling_factors(params, avg_sigma[1], avg_sigma[0])
-            R_biax = np.abs(buckling_f[0] * params.sigma_e / avg_sigma[0])
-            R_shear = np.abs(buckling_f[1] * params.sigma_e / avg_sigma[2])
+            R_biax = np.abs(buckling_f[0] * params.sigma_e / (params.sf * avg_sigma[0]))
+            R_shear = np.abs(buckling_f[1] * params.sigma_e / (params.sf * avg_sigma[2]))
             R_combined = np.abs(1 / (1 / R_biax + np.square(1 / R_shear)))
             load_case.Panels.append(
                 Panel(avg_xx=avg_sigma[0], avg_yy=avg_sigma[1], avg_xy=avg_sigma[2], k_biax=buckling_f[0],
@@ -103,7 +103,7 @@ def calc_avg_sigma_combined(load_cases: [LoadCase], params: Parameters):
                 R_f = sigma_crip / sigma_combined
             lamda = calc_lamda(params, load_cases, 1)
             sigma_cr = np.square(np.pi) * params.E / np.square(lamda)
-            R_f = sigma_cr / sigma_combined
+            R_f = sigma_cr / (params.sf * sigma_combined)
             load_case.Stringers.append(
                 Stringer(sigma_axial=sigma_combined, sigma_crip=sigma_crip, reserve_factor=np.abs(R_f)))
 
