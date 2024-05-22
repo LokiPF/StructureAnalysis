@@ -32,7 +32,7 @@ def read_config() -> [LoadCase]:
     stringer_height = float(config['PARAMETERS']['stringer_height'])
     stringer_neck_width = float(config['PARAMETERS']['stringer_neck_width'])
     main = pd.read_excel(io.output_file, sheet_name='in')
-    E = float(main.iat[5, 1])
+    E = float(main.iat[6, 1])
     parameters = Parameters(sigma_ul=sigma_ul, sigma_yield=sigma_yield, mu=mu, a=a, b=b, t=t,
                             stringer_base_w=stringer_base_w, stringer_height=stringer_height,
                             stringer_base_t=stringer_base_t, stringer_neck_width=stringer_neck_width,

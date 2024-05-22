@@ -62,6 +62,7 @@ class Geometric(NamedTuple):
     r_gyr: float
     lamda: float
     lamda_crit: float
+    sigma_cr: float
 
 
 class IO(NamedTuple):
