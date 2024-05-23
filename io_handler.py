@@ -19,8 +19,8 @@ def read_config() -> [LoadCase]:
     in_plane_stresses = config['INPUT']['in_plane_stresses']
     axial_stringer_stresses = config['INPUT']['axial_stringer_stresses']
     sigma_ul = float(config['PARAMETERS']['sigma_ul'])
-    io = IO(config['OUTPUT']['output_file'], sheet_name_planes=config['INPUT']['sheet_name_planes'], sheet_name_stringer=config['INPUT']['sheet_name_stringer'],
-            sheet_name_output=config['OUTPUT']['sheet_name_output'])
+    io = IO(config['OUTPUT']['output_file'],
+            sheet_name_output=config['OUTPUT']['sheet_name_output'], delimiter=config['INPUT']['delimiter'])
     sigma_ul = float(config['PARAMETERS']['sigma_ul'])
     sigma_yield = float(config['PARAMETERS']['sigma_yield'])
     mu = float(config['PARAMETERS']['mu'])
@@ -32,14 +32,14 @@ def read_config() -> [LoadCase]:
     stringer_base_t = float(config['PARAMETERS']['stringer_base_t'])
     stringer_height = float(config['PARAMETERS']['stringer_height'])
     stringer_neck_width = float(config['PARAMETERS']['stringer_neck_width'])
-    main = pd.read_excel(io.output_file, sheet_name='in')
+    main = pd.read_excel(io.output_file, sheet_name=io.sheet_name_output)
     E = float(main.iat[6, 1])
     parameters = Parameters(sigma_ul=sigma_ul, sigma_yield=sigma_yield, mu=mu, a=a, b=b, t=t,
                             stringer_base_w=stringer_base_w, stringer_height=stringer_height,
                             stringer_base_t=stringer_base_t, stringer_neck_width=stringer_neck_width,
                             E=E, sf=sf,
                             sigma_e=E * np.square(np.pi) / (12 * (1 - np.square(mu))) * np.square(t / b))
-    return read_excel(in_plane_stresses, axial_stringer_stresses, params=parameters), io, parameters
+    return read_excel(in_plane_stresses, axial_stringer_stresses, params=parameters, io=io), io, parameters
 
 
 def fill_csv_with_commas(input_file):
@@ -55,12 +55,12 @@ def fill_csv_with_commas(input_file):
         writer.writerows(rows)
 
 
-def read_excel(in_plane_stresses: str, axial_stringer_stresses: str, params: Parameters) -> [LoadCase]:
+def read_excel(in_plane_stresses: str, axial_stringer_stresses: str, params: Parameters, io: IO) -> [LoadCase]:
     fill_csv_with_commas(in_plane_stresses)
     fill_csv_with_commas(axial_stringer_stresses)
     logger.info('Reading excel file')
-    ips = pd.read_csv(in_plane_stresses)
-    ass = pd.read_csv(axial_stringer_stresses)
+    ips = pd.read_csv(in_plane_stresses, delimiter=io.delimiter)
+    ass = pd.read_csv(axial_stringer_stresses, delimiter=io.delimiter)
     load_cases = [LoadCase([], [], [], []) for _ in range(3)]
 
     k = 10

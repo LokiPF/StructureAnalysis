@@ -67,6 +67,5 @@ class Parameters(NamedTuple):
 
 class IO(NamedTuple):
     output_file: str = ''
-    sheet_name_planes: str = ''
-    sheet_name_stringer: str = ''
     sheet_name_output: str = ''
+    delimiter: str = ''
