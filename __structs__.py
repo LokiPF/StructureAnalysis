@@ -27,11 +27,19 @@ class Panel(NamedTuple):
     reserve_factor: float = 0
 
 
+class Geometric(NamedTuple):
+    I: float
+    r_gyr: float
+    lamda: float
+    lamda_crit: float
+    sigma_cr: float
+
+
 class Stringer(NamedTuple):
     sigma_axial: float
     sigma_crip: float
     reserve_factor: float = 0
-    geometrics: [] = []
+    geometrics: list[Geometric] = []
 
 
 class LoadCase(NamedTuple):
@@ -57,13 +65,8 @@ class Parameters(NamedTuple):
     sf: float = 1.5
 
 
-class Geometric(NamedTuple):
-    I: float
-    r_gyr: float
-    lamda: float
-    lamda_crit: float
-    sigma_cr: float
-
-
 class IO(NamedTuple):
     output_file: str = ''
+    sheet_name_planes: str = ''
+    sheet_name_stringer: str = ''
+    sheet_name_output: str = ''

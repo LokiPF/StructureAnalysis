@@ -19,7 +19,8 @@ def read_config() -> [LoadCase]:
     in_plane_stresses = config['INPUT']['in_plane_stresses']
     axial_stringer_stresses = config['INPUT']['axial_stringer_stresses']
     sigma_ul = float(config['PARAMETERS']['sigma_ul'])
-    io = IO(config['OUTPUT']['output_file'])
+    io = IO(config['OUTPUT']['output_file'], sheet_name_planes=config['INPUT']['sheet_name_planes'], sheet_name_stringer=config['INPUT']['sheet_name_stringer'],
+            sheet_name_output=config['OUTPUT']['sheet_name_output'])
     sigma_ul = float(config['PARAMETERS']['sigma_ul'])
     sigma_yield = float(config['PARAMETERS']['sigma_yield'])
     mu = float(config['PARAMETERS']['mu'])
@@ -89,7 +90,7 @@ def read_excel(in_plane_stresses: str, axial_stringer_stresses: str, params: Par
 
 def parse_excel(io: IO, load_cases: [LoadCase]):
     wb = openpyxl.load_workbook(io.output_file)
-    ws = wb.get_sheet_by_name('in')
+    ws = wb.get_sheet_by_name(io.sheet_name_output)
     parse_reserve_factors(ws, load_cases)
     parse_plane_analysis(ws, load_cases)
     parse_stringer_analysis(ws, load_cases)
