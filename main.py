@@ -86,10 +86,10 @@ def calc_avg_sigma_combined(load_cases: [LoadCase], params: Parameters):
             #     115.4074149)
             # b_1_1 = params.stringer_base_w / 2 - (params.stringer_neck_width / 2) * (
             #             0.25 * params.stringer_neck_width / params.stringer_base_t)
-            b_1_2 = params.stringer_height - params.stringer_base_t / 2 * (
-                        2 - 0.5 * params.stringer_neck_width / params.stringer_base_t)
+            b_1_2 = params.stringer_height - params.stringer_flange_t / 2 * (
+                    2 - 0.5 * params.stringer_webb_width / params.stringer_flange_t)
             # x_1 = b_1_1 / params.stringer_base_t * np.sqrt(params.sigma_yield / (0.41 * params.E))
-            x_2 = b_1_2 / params.stringer_neck_width * np.sqrt(params.sigma_yield / (0.41 * params.E))
+            x_2 = b_1_2 / params.stringer_webb_width * np.sqrt(params.sigma_yield / (0.41 * params.E))
             if x_2 <= 1.095:
                 alpha_2 = 1.4 - 0.628 * x_2
             elif x_2 <= 1.633:
@@ -108,21 +108,21 @@ def calc_avg_sigma_combined(load_cases: [LoadCase], params: Parameters):
                 Stringer(sigma_axial=sigma_combined, sigma_crip=sigma_crip, reserve_factor=np.abs(R_f)))
 
 
-def calc_lamda(params: Parameters, load_cases: [LoadCase], flag = 0):
+def calc_lamda(params: Parameters, load_cases: [LoadCase], flag=0):
     A_skin = params.t * params.b
-    A_stringer_base = params.stringer_base_w * params.stringer_base_t
-    A_stringer_neck = (params.stringer_height - params.stringer_base_t) * params.stringer_neck_width
-    A = A_skin + A_stringer_base + A_stringer_neck
-    z_bar_numerator = -params.t / 2 * A_skin + params.stringer_base_t / 2 * A_stringer_base + (
-            params.stringer_base_t + (params.stringer_height - params.stringer_base_t) / 2) * A_stringer_neck
+    A_stringer_flange = params.stringer_flange_w * params.stringer_flange_t
+    A_stringer_web = (params.stringer_height - params.stringer_flange_t) * params.stringer_webb_width
+    A = A_skin + A_stringer_flange + A_stringer_web
+    z_bar_numerator = -params.t / 2 * A_skin + params.stringer_flange_t / 2 * A_stringer_flange + (
+            params.stringer_flange_t + (params.stringer_height - params.stringer_flange_t) / 2) * A_stringer_web
     z_bar = z_bar_numerator / A
     I_skin = np.power(params.t, 3) * params.b / 12 + A_skin * np.square(-params.t / 2 - z_bar)
-    I_stringer_base = np.power(params.stringer_base_t, 3) * params.stringer_base_w / 12 + A_stringer_base * np.square(
-        params.stringer_base_t / 2 - z_bar)
-    I_stringer_neck = np.power(params.stringer_height - params.stringer_base_t,
-                               3) * params.stringer_neck_width / 12 + A_stringer_neck * np.square(
-        params.stringer_base_t + (params.stringer_height - params.stringer_base_t) / 2 - z_bar)
-    I = I_skin + I_stringer_base + I_stringer_neck
+    I_stringer_flange = np.power(params.stringer_flange_t, 3) * params.stringer_flange_w / 12 + A_stringer_flange * np.square(
+        params.stringer_flange_t / 2 - z_bar)
+    I_stringer_webb = np.power(params.stringer_height - params.stringer_flange_t,
+                               3) * params.stringer_webb_width / 12 + A_stringer_web * np.square(
+        params.stringer_flange_t + (params.stringer_height - params.stringer_flange_t) / 2 - z_bar)
+    I = I_skin + I_stringer_flange + I_stringer_webb
     r_gyr = np.sqrt(I / A)
     lamda = params.a / r_gyr
     if flag:

@@ -56,10 +56,10 @@ class Parameters(NamedTuple):
     a: float
     b: float
     t: float
-    stringer_base_w: float
-    stringer_base_t: float
+    stringer_flange_w: float
+    stringer_flange_t: float
     stringer_height: float
-    stringer_neck_width: float
+    stringer_webb_width: float
     E: float
     sigma_e: float
     sf: float = 1.5
