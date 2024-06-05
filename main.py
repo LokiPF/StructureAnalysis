@@ -101,14 +101,26 @@ def calc_avg_sigma_combined(load_cases: [LoadCase], params: Parameters):
                 R_f = params.sigma_yield / sigma_combined
             else:
                 R_f = sigma_crip / sigma_combined
-            lamda = calc_lamda(params, load_cases, 1)
-            sigma_cr = np.square(np.pi) * params.E / np.square(lamda)
+            I, r_gyr, lamda = calc_lamda(params)
+            lamda_crit = calc_crit_lamda(Stringer(sigma_combined, sigma_crip, 0), params) # pseudo stringer
+            if lamda < lamda_crit:
+                sigma_cr = params.sigma_yield - 1/params.E * np.square(params.sigma_yield / (2*np.pi)) * np.square(lamda)
+            else:
+                sigma_cr = np.square(np.pi) * params.E / np.square(lamda)
             R_f = sigma_cr / (params.sf * sigma_combined)
             load_case.Stringers.append(
                 Stringer(sigma_axial=sigma_combined, sigma_crip=sigma_crip, reserve_factor=np.abs(R_f)))
 
 
-def calc_lamda(params: Parameters, load_cases: [LoadCase], flag = 0):
+def calc_crit_lamda(stringer: Stringer, params: Parameters):
+    if np.abs(stringer.sigma_crip) < np.abs(params.sigma_yield):
+        lamda_crit = np.sqrt(2 * np.square(np.pi) * params.E / np.abs(stringer.sigma_crip))
+    else:
+        lamda_crit = np.sqrt(2 * np.square(np.pi) * params.E / params.sigma_yield)
+    return lamda_crit
+
+
+def calc_lamda(params: Parameters):
     A_skin = params.t * params.b
     A_stringer_base = params.stringer_base_w * params.stringer_base_t
     A_stringer_neck = (params.stringer_height - params.stringer_base_t) * params.stringer_neck_width
@@ -125,14 +137,16 @@ def calc_lamda(params: Parameters, load_cases: [LoadCase], flag = 0):
     I = I_skin + I_stringer_base + I_stringer_neck
     r_gyr = np.sqrt(I / A)
     lamda = params.a / r_gyr
+    return I, r_gyr, lamda
+
+
+def calc_geoms(params: Parameters, load_cases: [LoadCase], flag = 0):
+    I, r_gyr, lamda = calc_lamda(params)
     if flag:
         return lamda
     for load_case in load_cases:
         for stringer in load_case.Stringers:
-            if np.abs(stringer.sigma_crip) < np.abs(params.sigma_yield):
-                lamda_crit = np.sqrt(2 * np.square(np.pi) * params.E / np.abs(stringer.sigma_crip))
-            else:
-                lamda_crit = np.sqrt(2 * np.square(np.pi) * params.E / params.sigma_yield)
+            lamda_crit = calc_crit_lamda(stringer, params)
             sigma_cr = np.square(np.pi) * params.E / np.square(lamda)
             stringer.geometrics.append(Geometric(I=I, r_gyr=r_gyr, lamda=lamda, lamda_crit=lamda_crit, sigma_cr=sigma_cr))
 
@@ -140,6 +154,6 @@ if __name__ == '__main__':
     load_cases, io, parameters = read_config()
     calc_avg_sigma_panel(load_cases, parameters)
     calc_avg_sigma_combined(load_cases, parameters)
-    calc_lamda(parameters, load_cases)
+    calc_geoms(parameters, load_cases)
     parse_excel(io, load_cases)
     pass
