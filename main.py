@@ -20,7 +20,7 @@ logger = Logger('main').logger
 #     return Parameters(sigma_ul=float(sigma_ul), sigma_yield=float(sigma_yield), nu=float(nu))
 
 """
-Hello my name is Philip.
+Hello my name is Philip. Blbaba
 """
 
 def calc_buckling_factors(params: Parameters, sigma_y: float, sigma_x: float) -> [float,
